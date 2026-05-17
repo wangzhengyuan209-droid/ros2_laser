@@ -1,0 +1,17 @@
+build/
+install/
+log/
+*.pyc
+__pycache__/
+*.swp
+*.swo
+.vscode/
+.idea/
+yolov8n.pt
+*.pt
+src/ascam_ros2_ws/build/
+src/ascam_ros2_ws/install/
+src/ascam_ros2_ws/log/
+# Large files exceeding GitHub limits
+src/ascam_ros2_ws/src/yahboomcar_mediapipe/yahboomcar_mediapipe/file/shape_predictor_68_face_landmarks.dat
+src/ascam_ros2_ws/src/yahboomcar_slam/params/ORBvoc.txt
