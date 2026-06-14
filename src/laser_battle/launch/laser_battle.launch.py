@@ -96,7 +96,7 @@ def generate_launch_description():
             parameters=[{
                 'lock_radius': 30,
                 'min_area': 300,
-                'max_area': 250000,
+                'max_area': 300000,
             }],
             condition=IfCondition(enable_enemy_detector),
         ),
