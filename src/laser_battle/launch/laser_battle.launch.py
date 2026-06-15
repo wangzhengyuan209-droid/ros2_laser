@@ -1,12 +1,19 @@
 """Laser battle robot launch file.
 
-Launches: camera + base_controller + keyboard_control + enemy_detector + attack_controller
-
 Usage:
-  ros2 launch laser_battle laser_battle.launch.py
-  ros2 launch laser_battle laser_battle.launch.py show_camera:=false
-  ros2 launch laser_battle laser_battle.launch.py show_debug:=true
-  ros2 launch laser_battle laser_battle.launch.py enable_attack:=false
+  # With red union (attack enemy color + red/hit enemies)
+  ros2 launch laser_battle laser_battle.launch.py team_color:=green
+  ros2 launch laser_battle laser_battle.launch.py team_color:=blue
+
+  # Without red union (attack enemy color only)
+  ros2 launch laser_battle laser_battle.launch.py team_color:=green include_red:=false
+  ros2 launch laser_battle laser_battle.launch.py team_color:=blue include_red:=false
+
+  # Without dodge (add enable_dodge:=false)
+  ros2 launch laser_battle laser_battle.launch.py team_color:=green enable_dodge:=false
+  ros2 launch laser_battle laser_battle.launch.py team_color:=blue enable_dodge:=false
+  ros2 launch laser_battle laser_battle.launch.py team_color:=green include_red:=false enable_dodge:=false
+  ros2 launch laser_battle laser_battle.launch.py team_color:=blue include_red:=false enable_dodge:=false
 """
 import os
 
@@ -20,24 +27,28 @@ from launch_ros.actions import Node
 
 
 def generate_launch_description():
-    # Camera driver
     ascamera_launch = os.path.join(
         get_package_share_directory('ascamera'), 'launch', 'hp60c.launch.py'
     )
 
-    # Launch arguments
     enable_camera = LaunchConfiguration('enable_camera')
     show_camera = LaunchConfiguration('show_camera')
     show_debug = LaunchConfiguration('show_debug')
     enable_enemy_detector = LaunchConfiguration('enable_enemy_detector')
     enable_attack = LaunchConfiguration('enable_attack')
+    team_color = LaunchConfiguration('team_color')
+    include_red = LaunchConfiguration('include_red')
+    enable_dodge = LaunchConfiguration('enable_dodge')
 
     return LaunchDescription([
         DeclareLaunchArgument('enable_camera', default_value='true'),
-        DeclareLaunchArgument('show_camera', default_value='true'),
-        DeclareLaunchArgument('show_debug', default_value='false'),
+        DeclareLaunchArgument('show_camera', default_value='false'),
+        DeclareLaunchArgument('show_debug', default_value='true'),
         DeclareLaunchArgument('enable_enemy_detector', default_value='true'),
         DeclareLaunchArgument('enable_attack', default_value='true'),
+        DeclareLaunchArgument('team_color', default_value='green'),
+        DeclareLaunchArgument('include_red', default_value='true'),
+        DeclareLaunchArgument('enable_dodge', default_value='true'),
 
         # Camera driver
         IncludeLaunchDescription(
@@ -45,7 +56,7 @@ def generate_launch_description():
             condition=IfCondition(enable_camera),
         ),
 
-        # Camera viewer (rqt_image_view - raw feed)
+        # Camera viewer
         Node(
             package='rqt_image_view',
             executable='rqt_image_view',
@@ -55,7 +66,7 @@ def generate_launch_description():
             condition=IfCondition(show_camera),
         ),
 
-        # Debug image viewer (target detection overlay)
+        # Debug image viewer
         Node(
             package='rqt_image_view',
             executable='rqt_image_view',
@@ -65,7 +76,7 @@ def generate_launch_description():
             condition=IfCondition(show_debug),
         ),
 
-        # Base controller (STM32 motor bridge)
+        # Base controller
         Node(
             package='base_controller',
             executable='base_controller_node',
@@ -81,27 +92,29 @@ def generate_launch_description():
             output='screen',
             parameters=[{
                 'linear_speed': 0.3,
-                'angular_speed': 0.7,
-                'speed_step': 0.1,
+                'angular_speed': 0.9,
+                'speed_step': 0.25,
             }],
             prefix='xterm -e',
         ),
 
-        # Enemy detector (color-based target tracking)
+        # Enemy detector
         Node(
             package='laser_battle',
             executable='enemy_detector',
             name='enemy_detector',
             output='screen',
             parameters=[{
-                'lock_radius': 30,
+                'team_color': team_color,
+                'include_red': include_red,
                 'min_area': 300,
                 'max_area': 300000,
+                'depth_range': 500,
             }],
             condition=IfCondition(enable_enemy_detector),
         ),
 
-        # Attack controller (PID auto-aim while moving)
+        # Attack controller
         Node(
             package='laser_battle',
             executable='attack_controller',
@@ -116,6 +129,7 @@ def generate_launch_description():
                 'ki': 0.0001,
                 'kd': 0.002,
                 'max_angular': 1.5,
+                'enable_dodge': enable_dodge,
             }],
             condition=IfCondition(enable_attack),
         ),
